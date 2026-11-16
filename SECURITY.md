@@ -3,7 +3,7 @@
 ## Reporting a vulnerability
 
 Please don't open a public issue for security problems. Use GitHub's
-[private vulnerability reporting](https://github.com/NicxOp1/nexqa/security/advisories/new)
+[private vulnerability reporting](https://github.com/NicxOp1/nexqa-oss/security/advisories/new)
 instead. I'll reply within a few days.
 
 ## Running NEXQA safely

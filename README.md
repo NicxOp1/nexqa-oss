@@ -1,6 +1,6 @@
 # NEXQA
 
-[![CI](https://github.com/NicxOp1/nexqa/actions/workflows/ci.yml/badge.svg)](https://github.com/NicxOp1/nexqa/actions/workflows/ci.yml)
+[![CI](https://github.com/NicxOp1/nexqa-oss/actions/workflows/ci.yml/badge.svg)](https://github.com/NicxOp1/nexqa-oss/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 ![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)
 
@@ -49,8 +49,8 @@ sales). It works, and it has rough edges. Issues and PRs are welcome.
 Requires Python 3.11+.
 
 ```bash
-git clone https://github.com/NicxOp1/nexqa.git
-cd nexqa
+git clone https://github.com/NicxOp1/nexqa-oss.git
+cd nexqa-oss
 python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -e ".[dev]"
 pytest                                               # offline, no API keys needed

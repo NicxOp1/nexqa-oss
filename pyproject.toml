@@ -42,8 +42,8 @@ all = ["nexqa[api,dashboard,webhook]"]
 dev = ["nexqa[all]", "pytest>=8", "ruff>=0.6"]
 
 [project.urls]
-Homepage = "https://github.com/NicxOp1/nexqa"
-Issues = "https://github.com/NicxOp1/nexqa/issues"
+Homepage = "https://github.com/NicxOp1/nexqa-oss"
+Issues = "https://github.com/NicxOp1/nexqa-oss/issues"
 
 [project.scripts]
 nexqa = "nexqa.cli.main:app"

@@ -5,8 +5,8 @@ Thanks for helping. Bug reports, new test personas and fixes are all welcome.
 ## Set up
 
 ```bash
-git clone https://github.com/NicxOp1/nexqa.git
-cd nexqa
+git clone https://github.com/NicxOp1/nexqa-oss.git
+cd nexqa-oss
 python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -e ".[dev]"
 ```
