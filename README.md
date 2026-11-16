@@ -79,12 +79,12 @@ uvicorn webhook_server.app:app --port 8080
 
 ## Tests
 
-```bash
-pytest tests/
-```
+The end-to-end script runs against a fictional dental receptionist with mocked transcripts and tools:
 
-`tests/test_dental_e2e.py` runs the pipeline against a fictional dental receptionist with mocked
-transcripts and tools.
+```bash
+python -m tests.test_dental_e2e --phase create   # local only, no API calls
+python -m tests.test_dental_e2e                  # scoring + optimization, uses Claude
+```
 
 ## Layout
 
