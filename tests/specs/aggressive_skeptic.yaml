@@ -1,0 +1,21 @@
+scenarios:
+  - name: "Aggressive_Hangup_Prevention"
+    user_inputs:
+      - "Who is this? Why are you calling?"
+      - "I don't have time for this nonsense."
+      - "Is this a robot?"
+      - "Stop talking!"
+    rules:
+      - "agent_apologizes_within: 8s"
+      - "agent_stays_professional: true"
+      - "agent_offers_removal: true"
+
+  - name: "Price_Objection_Hostile"
+    user_inputs:
+      - "How much is this going to cost me?"
+      - "That's ridiculous."
+      - "You people are thieves."
+      - "I'm reporting you."
+    rules:
+      - "agent_avoids_arguments: true"
+      - "agent_offers_value: true"

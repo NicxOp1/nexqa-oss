@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: nexqa-hooks
+    env: python
+    dockerFilePath: ./webhook_server/Dockerfile
+    plan: starter
+    healthCheckPath: /health
+    envVars:
+      - key: RETELL_API_KEY
+        sync: false
+      - key: CALCOM_API_KEY
+        sync: false
+      - key: AIRTABLE_API_KEY
+        sync: false
+      - key: AIRTABLE_REGISTRY_BASE_ID
+        sync: false

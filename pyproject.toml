@@ -1,0 +1,34 @@
+[project]
+name = "nexqa"
+version = "0.1.0"
+description = "Automated QA and prompt evolution for Retell AI voice agents"
+authors = [
+    {name = "Nick Lopez"},
+]
+dependencies = [
+    "typer>=0.9.0",
+    "rich>=13.0.0",
+    "requests>=2.31.0",
+    "pydantic>=2.0.0",
+    "jinja2>=3.1.0",
+    "python-dotenv>=1.0.0",
+    "anthropic>=0.3.0",
+    "fastapi>=0.110.0",
+    "uvicorn[standard]>=0.27.0",
+    "motor>=3.3.0",
+    "dnspython>=2.4.0",
+    "python-docx>=1.0.0",
+    "pyyaml>=6.0.0",
+    "httpx>=0.27.0",
+    "pandas>=2.0.0",
+]
+requires-python = ">=3.11"
+readme = "README.md"
+license = {text = "MIT"}
+
+[project.scripts]
+nexqa = "nexqa.cli.main:app"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

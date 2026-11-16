@@ -1,0 +1,21 @@
+scenarios:
+  - name: "Rushed_Caller_Interruption"
+    user_inputs:
+      - "Yeah I'm in a hurry, what is this?"
+      - "Get to the point."
+      - "Can you just email me?"
+      - "Okay bye."
+    rules:
+      - "agent_speaks_under_5s: true"
+      - "agent_skips_pleasantries: true"
+      - "agent_sends_followup_sms: true"
+
+  - name: "No_Time_For_Pitch"
+    user_inputs:
+      - "Is this quick?"
+      - "I'm heading into a meeting."
+      - "Just give me the price."
+      - "Okay I gotta go."
+    rules:
+      - "agent_respects_time: true"
+      - "agent_schedules_callback: true"

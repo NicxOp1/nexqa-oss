@@ -1,0 +1,21 @@
+scenarios:
+  - name: "Confused_Greeting"
+    user_inputs:
+      - "Hello? Who is this again?"
+      - "I can't hear you well."
+      - "Is this my grandson?"
+      - "What did you say your name was?"
+    rules:
+      - "agent_speaks_slower: true"
+      - "agent_reiterates_identity: true"
+      - "agent_patient_tone: true"
+
+  - name: "Technical_Jargon_Objection"
+    user_inputs:
+      - "I don't understand these computer things."
+      - "Is it free?"
+      - "Can I just talk to a person?"
+      - "I don't know my email."
+    rules:
+      - "agent_simplifies_language: true"
+      - "agent_connects_human: true"

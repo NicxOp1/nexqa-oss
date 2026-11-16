@@ -1,0 +1,19 @@
+# Basic Outbound Sales Spec
+scenarios:
+  - name: "Introduction_Basic"
+    user_inputs:
+      - "Hello?"
+      - "Who is this?"
+      - "What's this about?"
+    expected_outcome: "Agent identifies itself and purpose clearly."
+    rules:
+      - "agent_identifies_name: true"
+      - "agent_state_purpose: true"
+
+  - name: "Price_Inquiry"
+    user_inputs:
+      - "How much does it cost?"
+      - "Is it expensive?"
+    expected_outcome: "Agent explains pricing or value proposition."
+    rules:
+      - "agent_answers_price: true"

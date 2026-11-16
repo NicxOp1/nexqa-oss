@@ -1,0 +1,61 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distributions
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environments
+venv/
+.venv/
+env/
+.env/
+
+# IDE
+.vscode/
+.idea/
+
+# Environment Variables
+.env
+.env.local
+.env.*
+
+# Logs
+*.log
+logs/
+
+# Project Specific
+/storage/
+output/
+temp/
+tmp/
+*.sqlite
+*.db
+
+# Debug / runtime output artifacts (not source)
+debug_*.txt
+build*.txt
+build*.log
+output.txt
+last_error.txt
+retell_error.txt
+real_llm_id.txt
+DONE.txt
+phase1_output.log
+e2e_full_output.log
