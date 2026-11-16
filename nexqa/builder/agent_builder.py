@@ -8,8 +8,7 @@ binds them to a new/existing LLM.
 
 import os
 import yaml
-import requests
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, Optional
 from nexqa.integrations.retell_client import RetellClient
 from nexqa.storage.logger import logger
 

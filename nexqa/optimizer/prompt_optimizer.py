@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List
 from nexqa.integrations.claude_client import claude_client
 from nexqa.models.scenario_models import SemanticIssue
 from nexqa.storage.logger import logger
@@ -36,7 +36,7 @@ class PromptOptimizer:
         """
         
         logger.info("Optimizing prompt with Claude...")
-        new_prompt = claude_client.complete(system_prompt, user_msg, temperature=0.7)
+        new_prompt = claude_client.complete(system_prompt, user_msg)
         return new_prompt.strip()
 
 prompt_optimizer = PromptOptimizer()

@@ -1,4 +1,4 @@
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Optional
 
 
@@ -25,12 +25,19 @@ class Settings(BaseSettings):
     retell_api_key: str = ""
     
     # Security
-    retell_webhook_secret: Optional[str] = None
+    # Verify X-Retell-Signature on every webhook (turn off only for local tests).
+    verify_signatures: bool = True
+    # Key used to verify signatures; defaults to retell_api_key. Must be the
+    # Retell API key that has the webhook badge.
+    retell_webhook_key: Optional[str] = None
+    # Bearer token for /admin/* endpoints. Admin endpoints are off when unset.
+    admin_token: str = ""
     
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        extra = "ignore"  # Ignore extra env vars (like OPENAI_API_KEY)
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",  # ignore env vars meant for the CLI
+    )
 
 
 settings = Settings()

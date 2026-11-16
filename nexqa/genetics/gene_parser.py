@@ -22,7 +22,7 @@ from __future__ import annotations
 
 import re
 import xml.etree.ElementTree as ET
-from typing import Dict, List, Optional, Tuple
+from typing import List, Optional
 
 from nexqa.models.gene_models import (
     Gene,
@@ -316,7 +316,6 @@ Rules:
         result = claude_client.complete(
             system_prompt,
             f"Tag this prompt:\n\n{untagged_prompt}",
-            temperature=0.0,
         )
         return result.strip()
 

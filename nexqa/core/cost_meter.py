@@ -4,13 +4,11 @@ NEXQA v1.0 — Cost Meter
 Tracks token usage and Retell simulation minutes to estimate run costs.
 Prevents runaway usage during optimization loops.
 
-Cost Assumptions (Configurable):
-- Claude 3.5 Sonnet: Input $3.00/1M, Output $15.00/1M
-- Retell Minutes: $0.12/minute (standard rate)
+Prices come from Config (CLAUDE_INPUT_PRICE_1M, CLAUDE_OUTPUT_PRICE_1M,
+RETELL_PRICE_PER_MINUTE) and can be overridden with environment variables.
 """
 
 from dataclasses import dataclass
-from typing import Dict
 
 from nexqa.storage.config import Config
 from nexqa.storage.logger import logger
@@ -31,11 +29,9 @@ class CostReport:
 class CostMeter:
     """Singleton for tracking API spend."""
 
-    # Prices (per unit)
-    # Prices (per unit)
     PRICE_CLAUDE_INPUT_1M = Config.CLAUDE_INPUT_PRICE_1M
     PRICE_CLAUDE_OUTPUT_1M = Config.CLAUDE_OUTPUT_PRICE_1M
-    PRICE_RETELL_MINUTE = 0.12
+    PRICE_RETELL_MINUTE = Config.RETELL_PRICE_PER_MINUTE
 
     def __init__(self) -> None:
         self.reset()

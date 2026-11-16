@@ -13,7 +13,6 @@ Usage:
 
 The server reads mock responses from the spec's tool_mocks.default section.
 """
-import json
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 import uvicorn

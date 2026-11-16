@@ -196,7 +196,7 @@ class VoiceCorpus:
     def get_universal_rules(self) -> Dict[str, List[Dict[str, str]]]:
         """Return voice AI rules in a structured, JSON-serializable format.
 
-        Designed for consumption by external systems (e.g., Hermes AgentCompiler)
+        Designed for consumption by external systems (e.g. an agent builder)
         so they can apply voice best practices during agent creation (shift-left).
 
         Returns dict with 'hard_rules' (always apply) and 'soft_rules' (recommendations).

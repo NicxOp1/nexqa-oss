@@ -17,6 +17,13 @@ API calls:
     Phase 2+ → Claude calls via score_engine + gene_optimizer
 """
 
+import sys as _sys
+
+for _stream in (_sys.stdout, _sys.stderr):
+    if hasattr(_stream, "reconfigure"):
+        _stream.reconfigure(encoding="utf-8", errors="replace")
+
+
 import argparse
 import json
 import sys
@@ -44,7 +51,6 @@ from tests.fixtures.dental_mock_transcripts import (
     ALL_TRANSCRIPTS,
     LIMITED_TRANSCRIPTS,
 )
-from tests.fixtures.dental_mock_tools import MockRetellClient
 
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -341,7 +347,6 @@ def phase_optimize(
         if "error" in score_data:
             continue
 
-        transcript_str = _transcript_to_string(tx["transcript"])
         det_result = _mock_deterministic(tx["transcript"])
 
         # Reconstruct EvaluationResult from scores
@@ -477,7 +482,7 @@ def phase_compare(
     if regressions:
         print(f"\n  ⚠️  REGRESSIONS DETECTED: {regressions}")
     else:
-        print(f"\n  ✅ No regressions detected")
+        print("\n  ✅ No regressions detected")
 
     # Version history
     history = prompt_history.get_history("test_dental_maria")
@@ -559,9 +564,9 @@ def run_e2e_test(
     n = len(transcripts)
     # ~2 scoring passes + 1 optimizer pass
     estimated_calls = n * 2 + 1
-    print(f"\n  💰 API COST SUMMARY")
+    print("\n  💰 API COST SUMMARY")
     print(f"     Transcripts scored:  {n} × 2 passes = {n * 2} Claude calls")
-    print(f"     Optimizer calls:     ~1")
+    print("     Optimizer calls:     ~1")
     print(f"     Total Claude calls:  ~{estimated_calls}")
     print(f"     Total time:          {total_time:.1f}s")
     print(f"     Est. cost (Sonnet):  ~${estimated_calls * 0.008:.2f}")

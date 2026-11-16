@@ -8,10 +8,9 @@ rewrites only that component, preserving the rest of the prompt structure.
 
 from typing import Dict, List, Optional
 
-from nexqa.genetics.gene_parser import gene_parser
 from nexqa.genetics.gene_validator import gene_validator
 from nexqa.integrations.claude_client import claude_client
-from nexqa.models.gene_models import Gene, GeneMutation, GeneSet, GeneType
+from nexqa.models.gene_models import Gene, GeneSet, GeneType
 from nexqa.models.scenario_models import EvaluationResult, SemanticIssue
 from nexqa.optimizer.voice_corpus import voice_corpus
 from nexqa.storage.logger import logger
@@ -168,7 +167,7 @@ Rewrite the gene content to resolve these issues.
 """
 
         response = claude_client.complete(
-            system_prompt, user_prompt, temperature=0.7
+            system_prompt, user_prompt
         )
         
         # Strip any accidental wrapping provided by LLM (markdown blocks etc)

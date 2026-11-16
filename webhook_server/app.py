@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from webhook_server.router import router
 from webhook_server.config import settings
@@ -8,18 +10,25 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 
+log = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    log.info("NEXQA Webhook Server starting...")
+    if not settings.verify_signatures:
+        log.warning("VERIFY_SIGNATURES=false: webhook requests are NOT authenticated.")
+    yield
+
+
 app = FastAPI(
     title="NEXQA Webhook Server",
+    lifespan=lifespan,
     description="Multi-tenant webhook server for Retell AI voice agents",
     version="1.0.0",
 )
 
 app.include_router(router)
-
-
-@app.on_event("startup")
-async def startup():
-    logging.getLogger(__name__).info("NEXQA Webhook Server starting...")
 
 
 if __name__ == "__main__":

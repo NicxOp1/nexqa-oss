@@ -4,11 +4,10 @@ NEXQA API — Agent Management
 Wraps Retell Client for agent CRUD operations.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 from fastapi import APIRouter, HTTPException
 
 from nexqa.integrations.retell_client import retell_client
-from nexqa.models.gene_models import GeneSet
 from nexqa.genetics.gene_parser import gene_parser
 from nexqa.storage.logger import logger
 

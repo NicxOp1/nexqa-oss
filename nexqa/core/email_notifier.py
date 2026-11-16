@@ -26,14 +26,16 @@ class EmailNotifier:
         agent_id: str,
         reason: str,
         score: float,
-        issues: List[str] = [],
+        issues: Optional[List[str]] = None,
     ) -> bool:
         """Send an email asking for human review."""
+        issues = issues or []
         if not self.host or not self.to_email:
             logger.warning("Email not configured. Skipping alert.")
             return False
 
         subject = f"[NEXQA REVIEW] Agent {agent_id} needs attention (Score: {score:.2f})"
+        top_issues = "\n".join(f"- {i}" for i in issues[:5])
         body = f"""
         NEXQA Review Request
         --------------------
@@ -42,7 +44,7 @@ class EmailNotifier:
         Current Score: {score:.2f}
 
         Top Issues:
-        {'\n'.join([f'- {i}' for i in issues[:5]])}
+        {top_issues}
 
         Please review the prompt and approve manually.
         """

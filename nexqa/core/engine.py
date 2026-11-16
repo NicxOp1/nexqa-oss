@@ -18,7 +18,6 @@ Polling uses asyncio.sleep() instead of time.sleep().
 from __future__ import annotations
 
 import asyncio
-import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -31,7 +30,7 @@ from nexqa.core.rule_compiler import CompiledRules, rule_compiler
 from nexqa.core.score_engine import score_engine
 from nexqa.genetics.gene_parser import gene_parser
 from nexqa.integrations.retell_client import retell_client
-from nexqa.models.gene_models import GeneSet, GeneType
+from nexqa.models.gene_models import GeneSet
 from nexqa.models.rule_models import CompiledSpec
 from nexqa.models.scenario_models import EvaluationResult, SimulationResult
 from nexqa.optimizer.gene_optimizer import gene_optimizer
@@ -458,7 +457,7 @@ class QAEngine:
                     logger.info(f"Waiting for {len(pending)}/{len(runs)} runs to finalize (retry {retry+1})...")
                     await asyncio.sleep(5)
                 # Return whatever we have
-                logger.warning(f"Some test runs still pending after retries. Returning available results.")
+                logger.warning("Some test runs still pending after retries. Returning available results.")
                 return [r for r in runs if r.get("status") not in ("in_progress", "pending", "running")]
             elif status == "failed":
                 logger.error("Batch test reported failure status")

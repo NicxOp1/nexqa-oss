@@ -48,7 +48,7 @@ class SpecIngestor:
             raise
 
     def _generate_scenarios_from_objectives(self, spec_data: dict) -> dict:
-        """Use Claude to generate test scenarios and rules from Hermes objectives."""
+        """Use Claude to generate test scenarios and rules from high-level agent objectives."""
         objectives = spec_data.get("objectives", [])
         agent_name = spec_data.get("agent_name", "Voice Agent")
         agent_type = spec_data.get("agent_type", "general")
@@ -108,7 +108,7 @@ Objectives:
 Generate comprehensive test scenarios and rules for this voice AI agent."""
 
         try:
-            response = claude_client.complete(system_prompt, user_prompt, temperature=0.3)
+            response = claude_client.complete(system_prompt, user_prompt)
 
             # Extract JSON from response
             json_str = response.strip()

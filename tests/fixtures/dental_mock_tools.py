@@ -4,7 +4,7 @@ Mock Retell client for end-to-end testing without API calls.
 Provides hardcoded patient records, availability, and booking/cancel/transfer
 methods that mirror the real retell_client interface.
 """
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 
 class MockRetellClient:

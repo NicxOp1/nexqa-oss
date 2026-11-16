@@ -16,6 +16,7 @@ IMPORTANT Cal.com v2 API quirks:
 """
 import logging
 from datetime import datetime
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from typing import Any, Optional
 import aiohttp
 from webhook_server.connectors.base import BaseConnector
@@ -66,15 +67,13 @@ class CalcomConnector(BaseConnector):
         The agent MUST call this before check_availability so it knows
         what date to offer the caller (today, tomorrow, next week, etc).
         """
+        tz_name = config.get("timezone", "America/New_York")
         try:
-            import pytz
-            tz = pytz.timezone(config.get("timezone", "America/New_York"))
-            now = datetime.now(tz)
-        except ImportError:
-            from datetime import timezone, timedelta
-            # Fallback without pytz: assume EST (-5)
-            tz_offset = timedelta(hours=-5)
-            now = datetime.now(timezone(tz_offset))
+            tz = ZoneInfo(tz_name)
+        except ZoneInfoNotFoundError:
+            logger.warning(f"Unknown timezone '{tz_name}', using America/New_York")
+            tz = ZoneInfo("America/New_York")
+        now = datetime.now(tz)  # zoneinfo handles daylight saving time
         
         # Format: "Thursday, February 20th, 2026 at 1:43 PM"
         day = now.day

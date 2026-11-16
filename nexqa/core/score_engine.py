@@ -208,7 +208,7 @@ Agent: ...
 
         try:
             response = claude_client.complete(
-                system_prompt, user_msg, temperature=0.0
+                system_prompt, user_msg
             )
             # Cleanup Markdown code blocks if present
             if "```json" in response:

@@ -17,7 +17,6 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from nexqa.core.engine import engine, RunResult
-from nexqa.storage.config import Config
 from nexqa.storage.database import get_db, with_mongo_retry, MONGO_TRANSIENT_ERRORS
 from nexqa.storage.logger import logger
 from pathlib import Path
@@ -67,7 +66,7 @@ async def start_qa_run(req: RunRequest):
     """Start a full QA run as an async background task.
 
     Accepts either spec_path (filesystem path for CLI) or spec_json
-    (inline JSON object from Hermes). If both are provided, spec_json
+    (inline JSON object from the calling app). If both are provided, spec_json
     takes priority.
     """
     if not req.spec_path and not req.spec_json:
@@ -153,7 +152,7 @@ async def _execute_run(
     """Async wrapper that runs engine.run_async() and persists result to MongoDB.
 
     Supports two modes:
-    - spec_json: inline JSON spec from Hermes (written to temp file for engine)
+    - spec_json: inline JSON spec from the calling app (written to temp file for engine)
     - spec_path: filesystem path for CLI usage
     """
     db = get_db()
@@ -185,7 +184,8 @@ async def _execute_run(
         logger.info(f"Run {run_id} completed: {result.success}")
 
     except Exception as e:
-        logger.error(f"Run {run_id} crashed: {e}")
+        error_text = str(e)
+        logger.error(f"Run {run_id} crashed: {error_text}")
         # Best-effort failure write — also retried so a failover during the run
         # doesn't leave the record stuck in "running" forever.
         try:
@@ -194,7 +194,7 @@ async def _execute_run(
                     {"run_id": run_id},
                     {"$set": {
                         "status": "failed",
-                        "error": str(e),
+                        "error": error_text,
                         "completed_at": datetime.now(timezone.utc),
                     }},
                 )

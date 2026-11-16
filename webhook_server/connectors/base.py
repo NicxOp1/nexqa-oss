@@ -52,7 +52,7 @@ class BaseConnector(ABC):
             period = "AM" if hour < 12 else "PM"
             display_hour = hour if hour <= 12 else hour - 12
             if display_hour == 0:
-                print(f"DEBUG: hour=0 -> 12") # Midnight case
+                print("DEBUG: hour=0 -> 12") # Midnight case
                 display_hour = 12
             if minute == 0:
                 return f"{display_hour} {period}"

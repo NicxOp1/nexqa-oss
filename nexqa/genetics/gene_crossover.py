@@ -16,9 +16,9 @@ Usage:
     offspring = gene_crossover.crossover(parent_a, parent_b, scores_a, scores_b)
 """
 
-from typing import Dict, List, Optional
+from typing import Dict, List
 
-from nexqa.models.gene_models import Gene, GeneSet, GeneType
+from nexqa.models.gene_models import Gene, GeneSet
 from nexqa.storage.logger import logger
 
 

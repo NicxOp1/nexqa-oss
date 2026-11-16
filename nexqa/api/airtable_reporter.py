@@ -4,12 +4,11 @@ NEXQA v1.0 — Airtable Reporter
 Syncs test results and optimization history to Airtable for visibility.
 """
 
-from typing import Any, Dict, List
+from typing import Any, Dict
 import datetime
 
 import requests
 
-from nexqa.models.scenario_models import EvaluationResult
 from nexqa.storage.config import Config
 from nexqa.storage.logger import logger
 

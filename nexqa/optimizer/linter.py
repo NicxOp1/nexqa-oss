@@ -9,8 +9,6 @@ and internal tool names are not exposed to the user.
 import re
 from typing import List
 
-from nexqa.models.gene_models import GeneType
-from nexqa.optimizer.voice_corpus import voice_corpus
 from nexqa.storage.logger import logger
 
 

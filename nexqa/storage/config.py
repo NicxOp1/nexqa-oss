@@ -25,12 +25,26 @@ class Config:
 
     # ─── LLM Config ────────────────────────────────────────────────
 
-    CLAUDE_MODEL: str = os.getenv("CLAUDE_MODEL", "claude-4-6-sonnet-latest")
-    CLAUDE_MAX_TOKENS: int = int(os.getenv("CLAUDE_MAX_TOKENS", "4096"))
-    
-    # Pricing (USD per 1M tokens) - Updated for Sonnet 4.6
-    CLAUDE_INPUT_PRICE_1M: float = 3.00
-    CLAUDE_OUTPUT_PRICE_1M: float = 15.00
+    CLAUDE_MODEL: str = os.getenv("CLAUDE_MODEL", "claude-opus-5-5")
+    CLAUDE_MAX_TOKENS: int = int(os.getenv("CLAUDE_MAX_TOKENS", "16000"))
+    # low | medium | high | xhigh | max. Mutation and judging work well at "high".
+    CLAUDE_EFFORT: str = os.getenv("CLAUDE_EFFORT", "high")
+
+    # Pricing (USD per 1M tokens) used by the cost meter. Known models are looked
+    # up in CLAUDE_PRICES; override with CLAUDE_INPUT_PRICE_1M / CLAUDE_OUTPUT_PRICE_1M.
+    CLAUDE_PRICES: Dict[str, tuple] = {
+        "claude-opus-5-5": (4.00, 20.00),
+        "claude-sonnet-5-5": (2.00, 10.00),
+        "claude-haiku-5-5": (0.10, 0.50),
+    }
+    _default_price = CLAUDE_PRICES.get(CLAUDE_MODEL, (4.00, 20.00))
+    CLAUDE_INPUT_PRICE_1M: float = float(
+        os.getenv("CLAUDE_INPUT_PRICE_1M", str(_default_price[0]))
+    )
+    CLAUDE_OUTPUT_PRICE_1M: float = float(
+        os.getenv("CLAUDE_OUTPUT_PRICE_1M", str(_default_price[1]))
+    )
+    RETELL_PRICE_PER_MINUTE: float = float(os.getenv("RETELL_PRICE_PER_MINUTE", "0.12"))
 
     # ─── Email / Alerts ────────────────────────────────────────────
 
@@ -65,14 +79,17 @@ class Config:
 
     # ─── Paths ──────────────────────────────────────────────────────
 
-    BASE_DIR: Path = Path(__file__).resolve().parent.parent.parent
-    STORAGE_DIR: Path = BASE_DIR / "storage"
+    # Runtime files (logs, reports, cache, prompt history) go to NEXQA_STORAGE_DIR,
+    # or ./storage under the directory you run nexqa from.
+    STORAGE_DIR: Path = Path(
+        os.getenv("NEXQA_STORAGE_DIR", str(Path.cwd() / "storage"))
+    ).resolve()
     LOGS_DIR: Path = STORAGE_DIR / "logs"
     REPORTS_DIR: Path = STORAGE_DIR / "reports"
     PROMPTS_DIR: Path = STORAGE_DIR / "prompts"
     CACHE_DIR: Path = STORAGE_DIR / "cache"
     GENETICS_DIR: Path = STORAGE_DIR / "genetics"
-    VOICE_CORPUS_DIR: Path = BASE_DIR / "corpus"
+    PROMPT_VERSIONS_DIR: Path = STORAGE_DIR / "prompt_versions"
 
     # ─── QA Engine Constants ────────────────────────────────────────
 
@@ -101,12 +118,12 @@ class Config:
     # ─── Validation ─────────────────────────────────────────────────
 
     @classmethod
-    def validate(cls) -> None:
+    def validate(cls, retell: bool = True, anthropic: bool = True) -> None:
         """Validate required configuration — raises ValueError if missing."""
         missing = []
-        if not cls.RETELL_API_KEY:
+        if retell and not cls.RETELL_API_KEY:
             missing.append("RETELL_API_KEY")
-        if not cls.ANTHROPIC_API_KEY:
+        if anthropic and not cls.ANTHROPIC_API_KEY:
             missing.append("ANTHROPIC_API_KEY")
 
         if missing:
@@ -140,10 +157,8 @@ class Config:
             cls.PROMPTS_DIR,
             cls.CACHE_DIR,
             cls.GENETICS_DIR,
+            cls.PROMPT_VERSIONS_DIR,
         ]
         for path in dirs:
             path.mkdir(parents=True, exist_ok=True)
 
-
-# Initialize directories on import
-Config.ensure_directories()

@@ -23,14 +23,24 @@ class RetellClient:
     BASE_URL = "https://api.retellai.com"
 
     def __init__(self) -> None:
-        Config.validate()
-        self.headers: Dict[str, str] = {
+        # The HTTP session is created on first use so importing NEXQA never
+        # needs RETELL_API_KEY. Connection-pooled: reuses TCP connections.
+        self.__session: Optional[requests.Session] = None
+
+    @property
+    def headers(self) -> Dict[str, str]:
+        return {
             "Authorization": f"Bearer {Config.RETELL_API_KEY}",
             "Content-Type": "application/json",
         }
-        # Connection-pooled session — reuses TCP connections across calls
-        self._session = requests.Session()
-        self._session.headers.update(self.headers)
+
+    @property
+    def _session(self) -> requests.Session:
+        if self.__session is None:
+            Config.validate(anthropic=False)
+            self.__session = requests.Session()
+            self.__session.headers.update(self.headers)
+        return self.__session
 
     def _get(self, path: str, **kwargs: Any) -> requests.Response:
         """GET with connection pooling."""

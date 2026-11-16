@@ -1,19 +1,13 @@
-from pathlib import Path
-from jinja2 import Environment, FileSystemLoader
+from html import escape
 from nexqa.storage.config import Config
 from nexqa.models.scenario_models import EvaluationResult
 from typing import List
-import json
 from datetime import datetime
 
 class HtmlReportGenerator:
     """Generates HTML reports using Jinja2 templates"""
     
     def generate(self, results: List[EvaluationResult], version: str):
-        env = Environment(loader=FileSystemLoader(searchpath="./"))
-        # We'll inline a simple template for now since we don't have separate template files
-        # Or we can write a template file then render.
-        
         report_data = {
             "version": version,
             "date": datetime.now().strftime("%Y-%m-%d %H:%M"),
@@ -24,6 +18,7 @@ class HtmlReportGenerator:
         html_content = self._render_template(report_data)
         
         filename = f"report_{version}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html"
+        Config.REPORTS_DIR.mkdir(parents=True, exist_ok=True)
         output_path = Config.REPORTS_DIR / filename
         output_path.write_text(html_content, encoding="utf-8")
         return output_path
@@ -34,7 +29,7 @@ class HtmlReportGenerator:
         <!DOCTYPE html>
         <html>
         <head>
-            <title>NEXQA Report {data['version']}</title>
+            <title>NEXQA Report {escape(str(data['version']))}</title>
             <style>
                 body {{ font-family: sans-serif; background: #1e1e1e; color: #fff; padding: 20px; }}
                 table {{ width: 100%; border-collapse: collapse; margin-top: 20px; }}
@@ -46,7 +41,7 @@ class HtmlReportGenerator:
             </style>
         </head>
         <body>
-            <h1>NEXQA Report - {data['version']}</h1>
+            <h1>NEXQA Report - {escape(str(data['version']))}</h1>
             <p>Date: {data['date']}</p>
             <p class="score">Average Score: {data['average_score']:.2f}</p>
             
@@ -70,10 +65,11 @@ class HtmlReportGenerator:
 
     def _row(self, result: dict) -> str:
         status_class = "pass" if not result['is_critical_fail'] else "fail"
-        issues = ", ".join([i['description'] for i in result['semantic_issues']])
+        # Issue text comes from transcripts and the LLM judge: escape it.
+        issues = escape(", ".join(i["description"] for i in result["semantic_issues"]))
         return f"""
         <tr class="{status_class}">
-            <td>{result['scenario_id']}</td>
+            <td>{escape(str(result['scenario_id']))}</td>
             <td>{'PASS' if result['deterministic_result']['passed'] else 'FAIL'}</td>
             <td>{result['semantic_score']:.2f}</td>
             <td>{result['overall_score']:.2f}</td>

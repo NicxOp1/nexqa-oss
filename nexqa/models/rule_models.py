@@ -1,4 +1,4 @@
-from typing import List, Optional, Any, Dict
+from typing import List, Optional, Dict
 from pydantic import BaseModel, Field
 
 # --- Rule Models ---
@@ -47,7 +47,7 @@ class TestScenario(BaseModel):
 
 class CompiledSpec(BaseModel):
     """The full output of the ingestion process"""
-    model_config = {"extra": "ignore"}  # Ignore extra fields from Hermes spec (agent_id, workspace_id, etc.)
+    model_config = {"extra": "ignore"}  # Ignore extra fields from the calling app spec (agent_id, workspace_id, etc.)
 
     hard_rules: List[HardRule] = []
     soft_rules: List[SoftRule] = []

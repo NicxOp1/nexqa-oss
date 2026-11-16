@@ -1,8 +1,5 @@
 import asyncio
 import aiohttp
-import json
-import os
-from pathlib import Path
 from webhook_server.config import settings
 import logging
 

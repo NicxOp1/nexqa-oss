@@ -1,13 +1,2 @@
-fastapi>=0.110.0
-uvicorn[standard]>=0.27.0
-requests>=2.31.0
-python-dotenv>=1.0.0
-typer>=0.9.0
-rich>=13.7.0
-pydantic>=2.6.0
-streamlit>=1.32.0
-plotly>=5.19.0
-pandas>=2.2.0
-pyairtable>=2.2.0
-motor>=3.3.0
-anthropic>=0.39.0
+# Everything (CLI, API, dashboard, webhook server). For development use: pip install -e ".[dev]"
+-e .[all]

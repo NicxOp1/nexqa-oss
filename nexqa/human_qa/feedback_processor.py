@@ -7,7 +7,7 @@ and converts it into actionable Semantic Issues for the Gene Optimizer.
 
 from typing import List, Optional
 
-from nexqa.integrations.claude_client import claude_client
+from nexqa.integrations.claude_client import claude_client, extract_json
 from nexqa.models.scenario_models import SemanticIssue
 from nexqa.storage.logger import logger
 
@@ -33,7 +33,8 @@ For each distinct problem, extract:
 4. Description: Detailed explanation.
 5. Recommendation: How to fix the prompt.
 
-Output JSON list of objects matching SemanticIssue schema.
+Return ONLY a JSON array. Each item has the keys "section", "severity",
+"description", "root_cause_gene" and "recommendation".
 """
 
         user_msg = f"""
@@ -47,26 +48,38 @@ Categorize all issues found.
 """
 
         try:
-            # Again, we'd use structured output or strict JSON tool if available
             response = claude_client.complete(system_prompt, user_msg)
-            
-            # Mock parsing logic here (assuming LLM returns JSON)
-            # In real implementation: json.loads(response) -> [SemanticIssue(**item) for item in list]
-            
-            # Simple fallback for now
-            return [
-                SemanticIssue(
-                    section="General",
-                    severity="MEDIUM",
-                    description=feedback_text,
-                    root_cause_gene="PERSONALITY",  # Guess
-                    recommendation="Review feedback manually",
-                )
-            ]
-
+            return self._parse_issues(response)
         except Exception as e:
             logger.error(f"Feedback processing failed: {e}")
-            return []
+            return [self._fallback_issue(feedback_text)]
+
+    @staticmethod
+    def _fallback_issue(feedback_text: str) -> SemanticIssue:
+        return SemanticIssue(
+            section="General",
+            severity="MEDIUM",
+            description=feedback_text,
+            recommendation="Review this feedback manually",
+        )
+
+    @staticmethod
+    def _parse_issues(response: str) -> List[SemanticIssue]:
+        data = extract_json(response)
+        if isinstance(data, dict):
+            data = data.get("issues", [data])
+        issues = []
+        for item in data:
+            try:
+                issue = SemanticIssue(**item)
+            except (TypeError, ValueError):
+                logger.warning(f"Skipping malformed issue from Claude: {item}")
+                continue
+            issue.severity = issue.severity.upper()
+            if issue.root_cause_gene:
+                issue.root_cause_gene = issue.root_cause_gene.upper()
+            issues.append(issue)
+        return issues
 
 
 # Singleton

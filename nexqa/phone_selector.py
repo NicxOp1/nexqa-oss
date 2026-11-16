@@ -1,7 +1,7 @@
 from rich.console import Console
 from rich.prompt import Prompt, Confirm
 from rich.table import Table
-from typing import Optional, Dict, Any
+from typing import Optional
 from nexqa.integrations.retell_client import retell_client
 
 console = Console()

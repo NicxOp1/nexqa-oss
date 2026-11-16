@@ -4,7 +4,7 @@ NEXQA API — Human QA
 Interactive testing endpoints for human testers.
 """
 
-from typing import List, Optional
+from typing import List
 
 from fastapi import APIRouter, HTTPException
 from nexqa.human_qa.session_manager import session_manager

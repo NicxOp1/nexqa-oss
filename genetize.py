@@ -8,6 +8,13 @@ Usage:
     python genetize.py <agent_id>
 """
 
+import sys as _sys
+
+for _stream in (_sys.stdout, _sys.stderr):
+    if hasattr(_stream, "reconfigure"):
+        _stream.reconfigure(encoding="utf-8", errors="replace")
+
+
 import sys
 import argparse
 from nexqa.integrations.retell_client import retell_client

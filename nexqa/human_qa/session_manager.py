@@ -13,8 +13,7 @@ from typing import Dict, List, Optional
 
 from nexqa.human_qa.feedback_processor import feedback_processor
 from nexqa.human_qa.script_generator import script_generator
-from nexqa.models.human_qa_models import HumanTestResult, HumanTestScript, HumanTestSession
-from nexqa.optimizer.gene_optimizer import gene_optimizer
+from nexqa.models.human_qa_models import HumanTestResult, HumanTestSession
 from nexqa.storage.logger import logger
 
 

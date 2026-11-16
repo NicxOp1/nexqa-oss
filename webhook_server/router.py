@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Request, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 import logging
 import json
+from webhook_server.auth import read_verified_body, require_admin
 from webhook_server.models import RetellFunctionCall, FunctionResponse
 from webhook_server.registry import get_agent_config, refresh_cache
 from webhook_server.executor import execute_function
@@ -20,18 +21,26 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
+def _parse_json(raw: str) -> dict:
+    try:
+        body = json.loads(raw)
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail="Invalid JSON body")
+    if not isinstance(body, dict):
+        raise HTTPException(status_code=400, detail="JSON body must be an object")
+    return body
+
+
 @router.post("/webhook/{agent_id}", response_model=FunctionResponse)
 async def handle_webhook(agent_id: str, request: Request):
     """
     Main webhook endpoint. Retell sends function calls here.
     Each agent has a unique URL: /webhook/{agent_id}
     """
-    # 1. Parse & Log Raw Payload
-    try:
-        body = await request.json()
-        logger.info(f"Raw webhook payload for agent {agent_id}: {body}")
-    except Exception:
-        raise HTTPException(status_code=400, detail="Invalid JSON body")
+    # 1. Verify the Retell signature, then parse. Payloads can hold caller PII,
+    #    so they are only logged at DEBUG.
+    body = _parse_json(await read_verified_body(request))
+    logger.debug(f"Raw webhook payload for agent {agent_id}: {body}")
 
     # 2. Normalize Payload for Model
     normalized_body = body.copy()
@@ -60,7 +69,7 @@ async def handle_webhook(agent_id: str, request: Request):
     # 3. Check for Non-Function Events (e.g., call_analyzed)
     if "event" in normalized_body and normalized_body["event"] != "function_call":
         event_type = normalized_body["event"]
-        logger.info(f"Received event '{event_type}' for agent {agent_id}. Payload: {normalized_body}")
+        logger.info(f"Received event '{event_type}' for agent {agent_id}")
         # Return 204 or simple OK for events
         return FunctionResponse(result="Event received")
 
@@ -77,11 +86,8 @@ async def handle_webhook(agent_id: str, request: Request):
 @router.post("/webhook/{agent_id}/{function_name}", response_model=FunctionResponse)
 async def handle_specific_tool(agent_id: str, function_name: str, request: Request):
     """Specific endpoint for a named function."""
-    try:
-        body = await request.json()
-        logger.info(f"Specific tool call '{function_name}' for agent {agent_id}. Body: {body}")
-    except Exception:
-        raise HTTPException(status_code=400, detail="Invalid JSON body")
+    body = _parse_json(await read_verified_body(request))
+    logger.info(f"Specific tool call '{function_name}' for agent {agent_id}")
 
     # Normalize arguments from nested structure if needed
     arguments = body
@@ -98,7 +104,8 @@ async def handle_specific_tool(agent_id: str, function_name: str, request: Reque
 
 async def _process_function_call(agent_id: str, function_name: str, arguments: dict):
     """Common logic for executing a function."""
-    logger.info(f"Processing function: {function_name} Args: {arguments}")
+    logger.info(f"Processing function: {function_name} for agent {agent_id}")
+    logger.debug(f"Arguments for {function_name}: {arguments}")
 
     # Get Agent Config
     agent = await get_agent_config(agent_id)
@@ -130,7 +137,7 @@ async def _process_function_call(agent_id: str, function_name: str, arguments: d
     return FunctionResponse(result=result)
 
 
-@router.post("/admin/refresh-cache")
+@router.post("/admin/refresh-cache", dependencies=[Depends(require_admin)])
 async def admin_refresh_cache():
     await refresh_cache()
     return {"status": "cache_cleared"}

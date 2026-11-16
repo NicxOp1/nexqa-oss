@@ -20,6 +20,8 @@ Usage:
 import json
 import time
 from pathlib import Path
+
+from nexqa.storage.config import Config
 from typing import Dict, List, Optional
 
 from pydantic import BaseModel
@@ -64,9 +66,7 @@ class PromptHistory:
     """Manages prompt versions with JSON file persistence."""
 
     def __init__(self, storage_dir: Optional[Path] = None) -> None:
-        self._storage_dir = storage_dir or (
-            Path(__file__).parent / "prompt_versions"
-        )
+        self._storage_dir = storage_dir or Config.PROMPT_VERSIONS_DIR
         self._cache: Dict[str, List[PromptVersion]] = {}
 
     def _ensure_dir(self) -> None:

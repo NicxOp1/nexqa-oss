@@ -7,9 +7,6 @@ Requires API running at http://localhost:8000
 
 import streamlit as st
 import requests
-import pandas as pd
-import json
-import plotly.express as px
 
 API_URL = "http://localhost:8000"
 
@@ -134,7 +131,7 @@ with tab_human:
                     st.info(f"Criteria: {step['criteria']}")
             
             # Result input
-            passed = st.checkbox(f"Passed?", key=f"pass_{script['scenario_id']}")
+            passed = st.checkbox("Passed?", key=f"pass_{script['scenario_id']}")
             notes = st.text_area("Notes/Issues", key=f"notes_{script['scenario_id']}")
             
             if st.button(f"Submit {script['scenario_name']}", key=f"sub_{script['scenario_id']}"):

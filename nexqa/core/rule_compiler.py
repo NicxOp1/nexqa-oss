@@ -1,6 +1,6 @@
 from typing import List, Dict, Any
 import re
-from nexqa.models.rule_models import CompiledSpec, HardRule, ToolDependency
+from nexqa.models.rule_models import CompiledSpec
 from nexqa.storage.logger import logger
 
 class CompiledRules:

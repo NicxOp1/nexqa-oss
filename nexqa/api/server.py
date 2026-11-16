@@ -11,6 +11,9 @@ Usage:
   uvicorn nexqa.api.server:app --reload
 """
 
+import hmac
+from contextlib import asynccontextmanager
+
 import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -18,7 +21,6 @@ from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from typing import Dict
 
-from nexqa.api import routes
 from nexqa.storage.config import Config
 from nexqa.storage.database import close_db
 from nexqa.storage.logger import logger
@@ -28,7 +30,7 @@ class APIKeyMiddleware(BaseHTTPMiddleware):
     """Reject requests without valid API key. Skips /health for Render health checks."""
 
     async def dispatch(self, request: Request, call_next):
-        if request.url.path == "/health" or request.url.path == "/docs" or request.url.path == "/openapi.json":
+        if request.url.path in ("/health", "/docs", "/openapi.json"):
             return await call_next(request)
 
         api_key = Config.NEXQA_API_KEY
@@ -37,16 +39,31 @@ class APIKeyMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         request_key = request.headers.get("X-API-Key", "")
-        if request_key != api_key:
+        if not hmac.compare_digest(request_key, api_key):
             return JSONResponse(status_code=401, content={"detail": "Unauthorized"})
 
         return await call_next(request)
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    Config.validate()
+    if not Config.NEXQA_API_KEY:
+        logger.warning(
+            "NEXQA_API_KEY is not set: the API accepts unauthenticated requests. "
+            "Set it before exposing the server beyond localhost."
+        )
+    logger.info(f"NEXQA API started (CORS origins: {_allowed_origins})")
+    yield
+    await close_db()
+    logger.info("NEXQA API shutdown, MongoDB connection closed")
 
 
 app = FastAPI(
     title="NEXQA API",
     version="1.0.0",
     description="Backend for Voice AI QA & Optimization Platform",
+    lifespan=lifespan,
 )
 
 # CORS — read allowed origins from env var, fall back to localhost for dev
@@ -79,22 +96,11 @@ def health_check() -> Dict[str, str]:
 def get_voice_corpus_rules():
     """Return structured voice AI rules for external consumption.
 
-    Used by Hermes AgentCompiler to apply voice best practices
-    during agent creation (shift-left), preventing predictable
-    NexQA test failures.
+    Lets an agent builder apply voice best practices while it creates
+    an agent, before NEXQA ever tests it.
     """
     from nexqa.optimizer.voice_corpus import voice_corpus
     return voice_corpus.get_universal_rules()
 
-@app.on_event("startup")
-def startup_event():
-    Config.validate()
-    logger.info(f"NEXQA API Started (CORS origins: {_allowed_origins})")
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    await close_db()
-    logger.info("NEXQA API shutdown — MongoDB connection closed")
-
 if __name__ == "__main__":
-    uvicorn.run("nexqa.api.server:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("nexqa.api.server:app", host="127.0.0.1", port=8000, reload=True)

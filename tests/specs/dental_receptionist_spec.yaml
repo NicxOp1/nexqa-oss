@@ -202,7 +202,7 @@ integrations:
     config:
       event_type_id: 0  # Replace with your Cal.com Event Type ID
       timezone: "America/New_York"
-      booking_url: "https://cal.com/nexaiqa/dental-appointment"
+      booking_url: "https://cal.com/your-team/dental-appointment"
 
   book_appointment:
     connector: calcom

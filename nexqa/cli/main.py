@@ -1,12 +1,9 @@
-import io
 import sys
-import os
 
-# Ultra-aggressive UTF-8 fix for Windows
-os.environ["PYTHONIOENCODING"] = "utf-8"
-if sys.stdout.encoding != 'utf-8':
-    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
-    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
+# Windows consoles default to cp1252 and crash on the emoji in our output.
+for _stream in (sys.stdout, sys.stderr):
+    if hasattr(_stream, "reconfigure"):
+        _stream.reconfigure(encoding="utf-8", errors="replace")
 
 import typer
 from rich.console import Console
@@ -320,7 +317,7 @@ def run(
                     break
 
         # 6. Fetch individual test run results via list-test-runs
-        console.print(f"\n[bold]Fetching individual results...[/bold]")
+        console.print("\n[bold]Fetching individual results...[/bold]")
         try:
             completed_results = retell_client.list_test_runs(batch_id)
         except Exception as e:
@@ -416,6 +413,9 @@ def create(
     spec_path: Path = typer.Option(..., help="Path to QA Specification file"),
     deploy: bool = typer.Option(False, "--deploy", "-d", help="Create live Retell agent"),
     setup_airtable: bool = typer.Option(False, "--setup-airtable", help="Run Airtable Auto-Setup"),
+    out_dir: Path = typer.Option(
+        Path("build"), "--out", "-o", help="Where to write the generated prompt and tools"
+    ),
 ):
     """
     Create a new agent from a YAML specification.
@@ -464,6 +464,16 @@ def create(
         console.print(f"[red]Build failed: {e}[/red]")
         raise typer.Exit(code=1)
 
+    slug = "".join(c if c.isalnum() else "_" for c in agent_name.lower()).strip("_") or "agent"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    prompt_file = out_dir / f"{slug}_prompt.txt"
+    tools_file = out_dir / f"{slug}_tools.json"
+    prompt_file.write_text(prompt_text, encoding="utf-8")
+    tools_file.write_text(json.dumps(tools, indent=2), encoding="utf-8")
+    console.print(f"[green]✓ Wrote {prompt_file} and {tools_file}[/green]")
+    if not deploy:
+        console.print("[dim]Add --deploy to create this agent in Retell.[/dim]")
+
     # 3. Deploy
     if deploy:
         if Confirm.ask(f"Deploy '{agent_name}' to Retell AI?"):
@@ -503,7 +513,7 @@ def create(
                         webhook_url=real_webhook_url,
                         webhook_events=["call_analyzed", "call_ended", "call_started"]
                     )
-                    console.print(f"[green]✓ Updated agent webhooks (Analysis enabled)[/green]")
+                    console.print("[green]✓ Updated agent webhooks (Analysis enabled)[/green]")
                     console.print(f"[green]✓ Updated tools with webhook URL: {real_webhook_url}[/green]")
 
                     # 4. Phone Selection
@@ -546,10 +556,11 @@ def create(
             except Exception as e:
                 import traceback
                 error_msg = traceback.format_exc()
-                with open("last_traceback.txt", "w", encoding="utf-8") as f:
-                    f.write(error_msg)
+                Config.LOGS_DIR.mkdir(parents=True, exist_ok=True)
+                tb_file = Config.LOGS_DIR / "last_traceback.txt"
+                tb_file.write_text(error_msg, encoding="utf-8")
                 console.print(f"[red]Deployment failed: {e}[/red]")
-                console.print(f"[dim]See last_traceback.txt for details[/dim]")
+                console.print(f"[dim]See {tb_file} for details[/dim]")
                 raise typer.Exit(code=1)
 
     # Airtable Auto-Setup Standalone
