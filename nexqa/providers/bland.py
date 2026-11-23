@@ -82,7 +82,7 @@ class BlandProvider(HTTPProvider):
     def target_kind(self) -> str:
         return str(self.config.get("target", "persona")).lower()
 
-    # ─── Prompt ──────────────────────────────────────────────────────
+    # --- Prompt ------------------------------------------------------
 
     def get_persona(self, persona_id: str) -> Dict[str, Any]:
         return _unwrap(self.get(f"/v1/personas/{persona_id}"))
@@ -123,7 +123,7 @@ class BlandProvider(HTTPProvider):
             f"/v1/personas/{agent_id}", json={"name": name, "personality_prompt": new_prompt}
         )
 
-    # ─── Tests ───────────────────────────────────────────────────────
+    # --- Tests -------------------------------------------------------
 
     def resolve_target(self, agent_id, hint=None) -> Optional[Dict[str, Any]]:
         if self.config.get("pathway_id"):

@@ -68,7 +68,7 @@ class SynthflowProvider(HTTPProvider):
     api_key_env = "SYNTHFLOW_API_KEY"
     base_url = "https://api.synthflow.ai/v2"
 
-    # ─── Prompt ──────────────────────────────────────────────────────
+    # --- Prompt ------------------------------------------------------
 
     def get_assistant(self, model_id: str) -> Dict[str, Any]:
         assistants = _response(self.get(f"/assistants/{model_id}")).get("assistants") or []
@@ -83,7 +83,7 @@ class SynthflowProvider(HTTPProvider):
         logger.info(f"Updating Synthflow assistant {agent_id} prompt (partial PUT)")
         return self.put(f"/assistants/{agent_id}", json={"agent": {"prompt": new_prompt}})
 
-    # ─── Tests ───────────────────────────────────────────────────────
+    # --- Tests -------------------------------------------------------
 
     def resolve_target(self, agent_id, hint=None):
         self.get_assistant(agent_id)

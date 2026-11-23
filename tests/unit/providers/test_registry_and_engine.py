@@ -93,7 +93,7 @@ def test_simulated_caller_uses_cheap_settings_and_end_token():
     assert SimulatedCaller(_FakeLLM("")).next_line("p", []) is None
 
 
-# ─── Engine wiring ────────────────────────────────────────────────────
+# --- Engine wiring ----------------------------------------------------
 
 
 class FakeProvider(VoiceProvider):

@@ -64,7 +64,7 @@ class ElevenLabsProvider(HTTPProvider):
     def auth_headers(self) -> Dict[str, str]:
         return {"xi-api-key": self.api_key}
 
-    # ─── Prompt ──────────────────────────────────────────────────────
+    # --- Prompt ------------------------------------------------------
 
     def get_agent(self, agent_id: str) -> Dict[str, Any]:
         return self.get(f"/v1/convai/agents/{agent_id}") or {}
@@ -82,7 +82,7 @@ class ElevenLabsProvider(HTTPProvider):
         logger.info(f"Updating ElevenLabs agent {agent_id} prompt (full conversation_config resent)")
         return self.patch(f"/v1/convai/agents/{agent_id}", json={"conversation_config": cc})
 
-    # ─── Tests ───────────────────────────────────────────────────────
+    # --- Tests -------------------------------------------------------
 
     def resolve_target(self, agent_id, hint=None):
         self.get_agent(agent_id)  # fail fast on a wrong id or key
@@ -128,7 +128,7 @@ class ElevenLabsProvider(HTTPProvider):
         logger.error(f"ElevenLabs test invocation {handle} timed out after {timeout}s")
         return SuiteRun()
 
-    # ─── Normalization ───────────────────────────────────────────────
+    # --- Normalization -----------------------------------------------
 
     @staticmethod
     def transcript_to_turns(items: List[Dict[str, Any]]) -> tuple:

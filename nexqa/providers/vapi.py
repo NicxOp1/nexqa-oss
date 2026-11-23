@@ -109,7 +109,7 @@ class VapiProvider(SimulatedCallerProvider, HTTPProvider):
     api_key_env = "VAPI_API_KEY"
     base_url = "https://api.vapi.ai"
 
-    # ─── Prompt ──────────────────────────────────────────────────────
+    # --- Prompt ------------------------------------------------------
 
     def get_assistant(self, agent_id: str) -> Dict[str, Any]:
         return self.get(f"/assistant/{agent_id}") or {}
@@ -137,7 +137,7 @@ class VapiProvider(SimulatedCallerProvider, HTTPProvider):
         logger.info(f"Updating Vapi assistant {agent_id} prompt (full model object resent)")
         return self.patch(f"/assistant/{agent_id}", json={"model": model})
 
-    # ─── Mode switch ─────────────────────────────────────────────────
+    # --- Mode switch -------------------------------------------------
 
     @property
     def mode(self) -> str:
@@ -247,7 +247,7 @@ class VapiProvider(SimulatedCallerProvider, HTTPProvider):
             raw=item,
         )
 
-    # ─── Chat mode session ───────────────────────────────────────────
+    # --- Chat mode session -------------------------------------------
 
     def open_session(self, agent_id: str, scenario: TestScenario) -> TextSession:
         return VapiChatSession(self, agent_id)

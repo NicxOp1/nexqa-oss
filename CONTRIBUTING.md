@@ -19,8 +19,8 @@ pytest
 ```
 
 Both run in CI on Linux (Python 3.11 to 3.13) and Windows. The unit tests are offline: they
-must never call Retell or Claude or need an API key. Mock the client instead (see
-`tests/unit/test_claude_client.py`).
+must never call a voice platform or Claude or need an API key. Mock the client instead (see
+`tests/unit/test_claude_client.py`, and `tests/unit/providers/_fakes.py` for HTTP adapters).
 
 ## Good first contributions
 
@@ -28,7 +28,11 @@ must never call Retell or Claude or need an API key. Mock the client instead (se
 - **Voice corpus rules.** Add a practice to `nexqa/voice_corpus/nexqa_voice_corpus_curated.md`
   with a short reason and, ideally, a linter check.
 - **Connectors.** Add a webhook connector in `webhook_server/connectors/` (see `base.py`).
-- **Other platforms.** Vapi or ElevenLabs support would start in `nexqa/integrations/`.
+- **Live reports for an adapter.** Most adapters are `tested-offline`. Running one against a
+  live account and reporting what happened (or fixing what broke) is the most useful PR right
+  now. Each `docs/providers/<name>.md` lists the open questions.
+- **New platforms.** See [Writing an adapter](docs/providers/README.md#writing-an-adapter).
+  Take every API shape from the platform's official docs and cite them in the module docstring.
 
 ## Guidelines
 

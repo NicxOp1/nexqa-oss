@@ -1,6 +1,36 @@
 # Changelog
 
-## 0.2.0
+## 0.3.0
+
+NEXQA is now platform-agnostic: the same QA and prompt-evolution loop runs on Retell, Vapi,
+ElevenLabs Agents, Bland, Synthflow, Ultravox, LiveKit Agents, Pipecat, or your own harness.
+
+### Added
+- Provider adapter layer (`nexqa/providers`). Every platform implements one interface: read
+  the prompt, replace only the prompt, run the spec's scenarios as test conversations, and
+  return each one as a normalized conversation (turns, tool calls, timings, end reason).
+- Adapters: `vapi` (Chat API + simulated caller, or native Simulations), `elevenlabs`
+  (native agent tests), `bland` (native Agent Testing on personas or pathways), `synthflow`
+  (native Simulations), `ultravox` (text-only WebSocket call), `livekit` (in-process
+  `AgentSession` text mode), `pipecat` and `custom` (your reply function). All are written
+  from the platforms' official docs, cited in each module, and marked `tested-offline` until
+  run against a live account. See `docs/providers/`.
+- Simulated caller: for platforms without a native test runner, Claude plays the caller from
+  the scenario's `user_prompt` (`SIMULATOR_MODEL`, `SIMULATOR_EFFORT`).
+- Spec keys `provider:` and `provider_config:`. The default is `retell`, so existing specs
+  run unchanged.
+- `nexqa providers` lists the platforms and adapter maturity. `nexqa run --provider` and
+  `--auto-apply`; `provider` on `POST /runs`; `?provider=` on `GET /agents/{id}/prompt`;
+  `genetize.py --provider`.
+- `PLATFORM_PRICE_PER_MINUTE` for the cost meter, and the `ultravox` extra (websockets).
+- `.env.example` is now in the repo (the README pointed to it, but `.gitignore` excluded it).
+- Offline tests for every adapter with mocked HTTP (84 tests in total).
+
+### Changed
+- `QAEngine` talks to a `VoiceProvider` instead of the Retell client, and takes an optional
+  `provider` argument and a `confirm_update` gate. Retell behavior is unchanged: the Retell
+  adapter is the old engine code, and a test checks its output against the old parsing.
+
 
 ### Fixed
 - Claude calls work with current models. NEXQA no longer sends `temperature`, which current

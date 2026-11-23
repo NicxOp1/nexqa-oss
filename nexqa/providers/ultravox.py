@@ -110,7 +110,7 @@ class UltravoxProvider(SimulatedCallerProvider, HTTPProvider):
     def auth_headers(self) -> Dict[str, str]:
         return {"X-API-Key": self.api_key}
 
-    # ─── Prompt ──────────────────────────────────────────────────────
+    # --- Prompt ------------------------------------------------------
 
     def get_agent(self, agent_id: str) -> Dict[str, Any]:
         return self.get(f"/agents/{agent_id}") or {}
@@ -126,7 +126,7 @@ class UltravoxProvider(SimulatedCallerProvider, HTTPProvider):
         self.get_agent(agent_id)
         return {"agent_id": agent_id}
 
-    # ─── Text session ────────────────────────────────────────────────
+    # --- Text session ------------------------------------------------
 
     def connector(self) -> Callable[..., Any]:
         if self.ws_connect is not None:

@@ -38,7 +38,7 @@ class ProviderError(RuntimeError):
     """A provider could not do what the engine asked (bad config, API error)."""
 
 
-# ─── Normalized conversation ───────────────────────────────────────────
+# --- Normalized conversation -------------------------------------------
 
 
 @dataclass
@@ -101,7 +101,7 @@ class Conversation:
         )
 
 
-# ─── Test suite bookkeeping ─────────────────────────────────────────────
+# --- Test suite bookkeeping ---------------------------------------------
 
 
 @dataclass
@@ -148,7 +148,7 @@ def scenario_metrics(scenario: TestScenario) -> List[str]:
     return metrics
 
 
-# ─── Provider interface ─────────────────────────────────────────────────
+# --- Provider interface -------------------------------------------------
 
 
 class VoiceProvider(ABC):
@@ -212,7 +212,7 @@ class VoiceProvider(ABC):
         }
 
 
-# ─── HTTP base for hosted platforms ─────────────────────────────────────
+# --- HTTP base for hosted platforms -------------------------------------
 
 
 class HTTPProvider(VoiceProvider):

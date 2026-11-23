@@ -54,7 +54,7 @@ class RetellProvider(VoiceProvider):
         super().__init__(config)
         self.client = client or retell_client
 
-    # ─── Prompt ──────────────────────────────────────────────────────
+    # --- Prompt ------------------------------------------------------
 
     def get_prompt(self, agent_id: str) -> str:
         return self.client.get_current_prompt(agent_id)
@@ -62,7 +62,7 @@ class RetellProvider(VoiceProvider):
     def update_prompt(self, agent_id: str, new_prompt: str) -> Any:
         return self.client.update_prompt(agent_id, new_prompt)
 
-    # ─── Tests ───────────────────────────────────────────────────────
+    # --- Tests -------------------------------------------------------
 
     def resolve_target(
         self, agent_id: str, hint: Optional[Dict[str, Any]] = None
@@ -156,7 +156,7 @@ class RetellProvider(VoiceProvider):
         logger.error(f"Batch test timed out after {timeout}s")
         return SuiteRun()
 
-    # ─── Normalization ───────────────────────────────────────────────
+    # --- Normalization -----------------------------------------------
 
     @staticmethod
     def normalize_runs(results: List[Dict[str, Any]]) -> List[Conversation]:
