@@ -2,7 +2,7 @@
 NEXQA v1.0 — API Server
 
 FastAPI backend for:
-- Agent management (Retell integration)
+- Agent management (Retell; prompt reads on any provider)
 - QA runs (Engine orchestration)
 - Human QA sessions (Script distribution, feedback collection)
 - Dashboard metrics

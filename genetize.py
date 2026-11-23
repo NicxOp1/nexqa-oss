@@ -17,23 +17,30 @@ for _stream in (_sys.stdout, _sys.stderr):
 
 import sys
 import argparse
-from nexqa.integrations.retell_client import retell_client
+from nexqa.providers import get_provider, load_provider_settings
 from nexqa.genetics.gene_parser import gene_parser
 from nexqa.storage.logger import logger
 
 def main():
     parser = argparse.ArgumentParser(description="Convert agent prompt to XML genes.")
-    parser.add_argument("agent_id", help="Retell Agent ID to genetize")
+    parser.add_argument("agent_id", help="ID of the agent to genetize on its platform")
     parser.add_argument("--force", action="store_true", help="Overwrite existing genes")
-    
+    parser.add_argument("--provider", default=None,
+                        help="Voice platform (default: retell). See `nexqa providers`.")
+    parser.add_argument("--spec", default=None,
+                        help="Spec file to read provider / provider_config from")
+
     args = parser.parse_args()
     agent_id = args.agent_id
+    spec_name, spec_config = load_provider_settings(args.spec)
+    provider = get_provider(args.provider or spec_name,
+                            spec_config if not args.provider else {})
 
     print(f"🧬 Genetizing Agent: {agent_id}")
 
     try:
         # 1. Fetch current prompt
-        current_prompt = retell_client.get_current_prompt(agent_id)
+        current_prompt = provider.get_prompt(agent_id)
         print(f"   Current Length: {len(current_prompt)} chars")
 
         # 2. Check if already genetized
@@ -53,13 +60,13 @@ def main():
         print(f"   New Length: {len(tagged_prompt)} chars")
 
         # 5. Confirm
-        confirm = input("\nApply this new structure to Retell Agent? (y/N): ")
+        confirm = input(f"\nApply this new structure to the {provider.display_name} agent? (y/N): ")
         if confirm.lower() != 'y':
             print("❌ Aborted.")
             sys.exit(0)
 
         # 6. Update
-        retell_client.update_prompt(agent_id, tagged_prompt)
+        provider.update_prompt(agent_id, tagged_prompt)
         print("✅ Success! Agent prompt updated with Genes.")
         print("   You can now run 'nexqa optimize' with targeted mutations.")
 

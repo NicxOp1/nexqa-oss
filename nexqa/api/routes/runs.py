@@ -33,6 +33,8 @@ class RunRequest(BaseModel):
     spec_path: Optional[str] = None
     spec_json: Optional[Dict[str, Any]] = None
     workspace_id: Optional[str] = None
+    # Voice platform; overrides the spec's `provider:` key. Default: retell.
+    provider: Optional[str] = None
 
 
 def _run_to_doc(run_id: str, result: RunResult, workspace_id: Optional[str] = None) -> Dict[str, Any]:
@@ -107,7 +109,8 @@ async def start_qa_run(req: RunRequest):
 
     # Fire-and-forget async task (non-blocking)
     asyncio.create_task(
-        _execute_run(run_id, req.agent_id, req.spec_path, req.workspace_id, req.spec_json)
+        _execute_run(run_id, req.agent_id, req.spec_path, req.workspace_id, req.spec_json,
+                     req.provider)
     )
 
     return {"run_id": run_id, "status": "running"}
@@ -148,6 +151,7 @@ async def _execute_run(
     spec_path: Optional[str] = None,
     workspace_id: Optional[str] = None,
     spec_json: Optional[Dict[str, Any]] = None,
+    provider: Optional[str] = None,
 ) -> None:
     """Async wrapper that runs engine.run_async() and persists result to MongoDB.
 
@@ -175,7 +179,7 @@ async def _execute_run(
         else:
             raise ValueError("No spec provided (need spec_json or spec_path)")
 
-        result = await engine.run_async(agent_id, path)
+        result = await engine.run_async(agent_id, path, provider=provider)
 
         doc = _run_to_doc(run_id, result, workspace_id)
         await with_mongo_retry(
