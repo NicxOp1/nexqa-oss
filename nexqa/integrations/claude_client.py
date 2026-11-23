@@ -48,19 +48,23 @@ class ClaudeClient:
         system_prompt: str,
         user_prompt: str,
         temperature: Optional[float] = None,
+        *,
+        effort: Optional[str] = None,
+        model: Optional[str] = None,
     ) -> str:
         """Return Claude's text answer for one system + user prompt.
 
         `temperature` is accepted for backwards compatibility and ignored:
         current Claude models do not take sampling parameters. Use
-        CLAUDE_EFFORT to trade depth for cost instead.
+        CLAUDE_EFFORT to trade depth for cost instead. `effort` and `model`
+        override the defaults for one call (the simulated caller uses them).
         """
         try:
             with self.client.messages.stream(
-                model=self.model,
+                model=model or self.model,
                 max_tokens=Config.CLAUDE_MAX_TOKENS,
                 thinking={"type": "adaptive"},
-                output_config={"effort": Config.CLAUDE_EFFORT},
+                output_config={"effort": effort or Config.CLAUDE_EFFORT},
                 system=system_prompt,
                 messages=[{"role": "user", "content": user_prompt}],
             ) as stream:

@@ -1,11 +1,13 @@
 """
 NEXQA v1.0 — Cost Meter
 
-Tracks token usage and Retell simulation minutes to estimate run costs.
+Tracks token usage and test-call minutes on the voice platform to estimate run costs.
 Prevents runaway usage during optimization loops.
 
 Prices come from Config (CLAUDE_INPUT_PRICE_1M, CLAUDE_OUTPUT_PRICE_1M,
-RETELL_PRICE_PER_MINUTE) and can be overridden with environment variables.
+PLATFORM_PRICE_PER_MINUTE) and can be overridden with environment variables.
+The report field keeps its historical name `retell_minutes` for compatibility;
+it counts billed minutes on whichever platform is under test.
 """
 
 from dataclasses import dataclass
@@ -31,7 +33,7 @@ class CostMeter:
 
     PRICE_CLAUDE_INPUT_1M = Config.CLAUDE_INPUT_PRICE_1M
     PRICE_CLAUDE_OUTPUT_1M = Config.CLAUDE_OUTPUT_PRICE_1M
-    PRICE_RETELL_MINUTE = Config.RETELL_PRICE_PER_MINUTE
+    PRICE_RETELL_MINUTE = Config.PLATFORM_PRICE_PER_MINUTE
 
     def __init__(self) -> None:
         self.reset()
@@ -48,7 +50,7 @@ class CostMeter:
         self._claude_output += output_tokens
 
     def add_minutes(self, minutes: float) -> None:
-        """Log Retell simulation minutes."""
+        """Log billed test-call minutes on the platform under test."""
         self._retell_minutes += minutes
 
     def get_report(self) -> CostReport:
