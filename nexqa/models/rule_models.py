@@ -1,4 +1,4 @@
-from typing import List, Optional, Dict
+from typing import Any, List, Optional, Dict
 from pydantic import BaseModel, Field
 
 # --- Rule Models ---
@@ -58,3 +58,8 @@ class CompiledSpec(BaseModel):
     max_iterations: Optional[int] = None
     max_scenarios: Optional[int] = None
     prompt: Optional[str] = None
+    # Voice platform under test (see nexqa/providers). Read deterministically from
+    # the spec file by nexqa.providers.load_provider_settings; kept here so a
+    # compiled spec records where it ran.
+    provider: str = "retell"
+    provider_config: Dict[str, Any] = Field(default_factory=dict)

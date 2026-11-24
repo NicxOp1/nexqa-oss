@@ -1,14 +1,16 @@
 """
 NEXQA API — Agent Management
 
-Wraps Retell Client for agent CRUD operations.
+Agent listing and details use Retell. Prompt reads work on any provider
+(`?provider=vapi`, with keys from the environment).
 """
 
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, HTTPException
 
 from nexqa.integrations.retell_client import retell_client
 from nexqa.genetics.gene_parser import gene_parser
+from nexqa.providers import get_provider
 from nexqa.storage.logger import logger
 
 
@@ -36,10 +38,10 @@ def get_agent(agent_id: str):
 
 
 @router.get("/{agent_id}/prompt")
-def get_prompt_genes(agent_id: str):
-    """Get current prompt parsed as Genes."""
+def get_prompt_genes(agent_id: str, provider: Optional[str] = None):
+    """Get current prompt parsed as Genes (any provider; default retell)."""
     try:
-        current_prompt = retell_client.get_current_prompt(agent_id)
+        current_prompt = get_provider(provider).get_prompt(agent_id)
         if not current_prompt:
             return {"genes": []}
         gene_set = gene_parser.parse(current_prompt)

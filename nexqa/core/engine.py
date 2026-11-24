@@ -13,6 +13,10 @@ Iteration logic (from CLAUDE.md):
 
 Async: engine.run_async() uses asyncio for non-blocking execution.
 Polling uses asyncio.sleep() instead of time.sleep().
+
+Platforms: the engine never calls a voice platform directly. It talks to a
+`VoiceProvider` (nexqa/providers), picked by the spec's `provider:` key
+(default: retell) or passed in explicitly.
 """
 
 from __future__ import annotations
@@ -20,7 +24,7 @@ from __future__ import annotations
 import asyncio
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Union
 
 from nexqa.core.cost_meter import cost_meter
 from nexqa.core.deterministic_validator import deterministic_validator
@@ -29,7 +33,13 @@ from nexqa.core.regression_tracker import regression_tracker
 from nexqa.core.rule_compiler import CompiledRules, rule_compiler
 from nexqa.core.score_engine import score_engine
 from nexqa.genetics.gene_parser import gene_parser
-from nexqa.integrations.retell_client import retell_client
+from nexqa.providers import (
+    VoiceProvider,
+    get_provider,
+    load_provider_settings,
+    normalize_name,
+)
+from nexqa.providers.base import Conversation, TestSuite
 from nexqa.models.gene_models import GeneSet
 from nexqa.models.rule_models import CompiledSpec
 from nexqa.models.scenario_models import EvaluationResult, SimulationResult
@@ -88,6 +98,20 @@ class QAEngine:
     def __init__(self) -> None:
         self.poll_interval: int = 5  # seconds between batch test polls
         self._pre_optimization_prompt: Optional[str] = None  # rollback safety
+        self.provider: Optional[VoiceProvider] = None  # set at the start of each run
+        # Optional human gate, called with (old_prompt, new_prompt) before a
+        # rewrite is deployed. Return False to stop. None = apply automatically.
+        self.confirm_update: Optional[Callable[[str, str], bool]] = None
+
+    def _resolve_provider(
+        self, provider: Union[VoiceProvider, str, None], spec_path: Path
+    ) -> VoiceProvider:
+        if isinstance(provider, VoiceProvider):
+            return provider
+        spec_name, config = load_provider_settings(spec_path)
+        name = normalize_name(provider) if provider else spec_name
+        # The spec's provider_config only applies to the provider it was written for.
+        return get_provider(name, config if name == spec_name else {})
 
     # ─── Sync entry point (CLI) ──────────────────────────────────────
 
@@ -96,10 +120,11 @@ class QAEngine:
         agent_id: str,
         spec_path: Path,
         response_engine: Optional[Dict[str, Any]] = None,
+        provider: Union[VoiceProvider, str, None] = None,
     ) -> RunResult:
         """Synchronous run — blocks until completion. Use for CLI."""
         return asyncio.get_event_loop().run_until_complete(
-            self.run_async(agent_id, spec_path, response_engine)
+            self.run_async(agent_id, spec_path, response_engine, provider=provider)
         )
 
     # ─── Async entry point (API) ─────────────────────────────────────
@@ -110,19 +135,34 @@ class QAEngine:
         spec_path: Path,
         response_engine: Optional[Dict[str, Any]] = None,
         timeout: Optional[int] = None,
+        provider: Union[VoiceProvider, str, None] = None,
     ) -> RunResult:
         """Execute the full QA pipeline asynchronously with configurable timeout.
 
         Args:
-            agent_id: Retell agent ID to test.
+            agent_id: ID of the agent on the platform under test.
             spec_path: Path to QA specification file.
-            response_engine: If None, fetched from agent.
+            response_engine: Test target. Retell: the agent's response_engine.
+                If None, the provider resolves it from the agent.
             timeout: Max seconds for entire run. Defaults to Config.ENGINE_TIMEOUT.
+            provider: A VoiceProvider instance, a provider name, or None to use
+                the spec's `provider:` key (default "retell").
 
         Returns:
             RunResult with all iteration details.
         """
         timeout = timeout or Config.ENGINE_TIMEOUT
+        try:
+            self.provider = self._resolve_provider(provider, spec_path)
+        except Exception as e:
+            return self._finalize_run(RunResult(
+                agent_id=agent_id,
+                success=False,
+                final_score=0.0,
+                total_iterations=0,
+                action="failed",
+                error=f"Provider setup failed: {e}",
+            ))
         try:
             return await asyncio.wait_for(
                 self._run_pipeline(agent_id, spec_path, response_engine),
@@ -147,19 +187,15 @@ class QAEngine:
         response_engine: Optional[Dict[str, Any]] = None,
     ) -> RunResult:
         """Core pipeline logic (extracted for timeout wrapping)."""
-        logger.info(f"Starting QA run for agent {agent_id}")
+        provider = self.provider
+        assert provider is not None
+        logger.info(f"Starting QA run for agent {agent_id} on provider '{provider.name}'")
         cost_meter.reset()
 
-        # ── Step 1: Resolve response engine ──
+        # ── Step 1: Resolve the test target (Retell: the response engine) ──
         if not response_engine:
             try:
-                agent_details = retell_client.get_agent(agent_id)
-                response_engine = agent_details.get("response_engine")
-                if not response_engine and agent_details.get("llm_id"):
-                    response_engine = {
-                        "type": "retell-llm",
-                        "llm_id": agent_details.get("llm_id"),
-                    }
+                response_engine = provider.resolve_target(agent_id)
             except Exception as e:
                 return self._finalize_run(RunResult(
                     agent_id=agent_id,
@@ -199,8 +235,8 @@ class QAEngine:
             ))
 
         # ── Step 3: Register test cases ──
-        test_case_ids = self._register_test_cases(agent_id, spec, response_engine)
-        if not test_case_ids:
+        suite = provider.register_scenarios(agent_id, spec, response_engine)
+        if not suite.items:
             return self._finalize_run(RunResult(
                 agent_id=agent_id,
                 success=False,
@@ -228,8 +264,7 @@ class QAEngine:
             iter_result = await self._run_iteration_async(
                 iteration=iteration,
                 agent_id=agent_id,
-                test_case_ids=test_case_ids,
-                response_engine=response_engine,
+                suite=suite,
                 rules=rules,
                 spec=spec,
             )
@@ -313,54 +348,20 @@ class QAEngine:
 
     # ─── Private Methods ────────────────────────────────────────────
 
-    def _register_test_cases(
-        self,
-        agent_id: str,
-        spec: CompiledSpec,
-        response_engine: Dict[str, Any],
-    ) -> List[str]:
-        """Register scenarios as Retell test case definitions."""
-        test_case_ids: List[str] = []
-        llm_id = response_engine.get("llm_id")
-
-        for scenario in spec.scenarios:
-            try:
-                # Build metrics from scenario criteria (like CLI does)
-                metrics = []
-                if scenario.expected_outcome:
-                    metrics.append(scenario.expected_outcome)
-                for checkpoint in scenario.critical_checkpoints:
-                    metrics.append(checkpoint)
-                if not metrics:
-                    metrics = [f"Agent handles '{scenario.name}' correctly and professionally."]
-
-                tc_id = retell_client.create_test_case_definition(
-                    name=scenario.name,
-                    user_prompt=scenario.user_prompt,
-                    llm_id=llm_id,
-                    metrics=metrics,
-                )
-                test_case_ids.append(tc_id)
-            except Exception as e:
-                logger.warning(f"Skipping scenario '{scenario.name}': {e}")
-                print(f"FAILED TO CREATE TEST CASE {scenario.name}: {e}")
-
-        return test_case_ids
-
     async def _run_iteration_async(
         self,
         iteration: int,
         agent_id: str,
-        test_case_ids: List[str],
-        response_engine: Dict[str, Any],
+        suite: TestSuite,
         rules: CompiledRules,
         spec: CompiledSpec,
     ) -> IterationResult:
         """Execute a single QA iteration asynchronously."""
+        assert self.provider is not None
 
         # ── Batch test ──
         try:
-            batch_id = retell_client.create_batch_test(test_case_ids, response_engine)
+            batch_id = self.provider.start_run(suite)
             logger.info(f"Batch test started: {batch_id}")
         except Exception as e:
             logger.error(f"Failed to start batch test: {e}")
@@ -373,7 +374,7 @@ class QAEngine:
             )
 
         # ── Poll for completion (async) ──
-        completed_results = await self._poll_batch_test_async(batch_id)
+        completed_results = await self._poll_batch_test_async(suite, batch_id)
         if not completed_results:
             return IterationResult(
                 iteration=iteration,
@@ -429,100 +430,34 @@ class QAEngine:
         )
 
     async def _poll_batch_test_async(
-        self, batch_id: str, timeout: Optional[int] = None
-    ) -> List[Dict[str, Any]]:
-        """Poll a batch test until completion using asyncio.sleep()."""
+        self, suite: TestSuite, batch_id: str, timeout: Optional[int] = None
+    ) -> List[Conversation]:
+        """Wait for the provider's run; return its normalized conversations."""
         timeout = timeout or Config.ENGINE_TIMEOUT
-        elapsed = 0
-        while elapsed < timeout:
-            await asyncio.sleep(self.poll_interval)
-            elapsed += self.poll_interval
-
-            batch_status = retell_client.get_batch_test(batch_id)
-            status = batch_status.get("status")
-
-            if status in ("completed", "complete"):
-                summary = batch_status.get("batch_test_summary", {})
-                mins = summary.get("total_duration_seconds", 0) / 60.0
-                cost_meter.add_minutes(mins)
-
-                logger.info(f"Batch {batch_id} completed. Waiting for individual runs to finalize...")
-                # Wait for individual test runs to have transcripts
-                for retry in range(12):  # Max 60s extra wait
-                    runs = retell_client.list_test_runs(batch_id)
-                    pending = [r for r in runs if r.get("status") in ("in_progress", "pending", "running")]
-                    if not pending:
-                        logger.info(f"All {len(runs)} test runs finalized.")
-                        return runs
-                    logger.info(f"Waiting for {len(pending)}/{len(runs)} runs to finalize (retry {retry+1})...")
-                    await asyncio.sleep(5)
-                # Return whatever we have
-                logger.warning("Some test runs still pending after retries. Returning available results.")
-                return [r for r in runs if r.get("status") not in ("in_progress", "pending", "running")]
-            elif status == "failed":
-                logger.error("Batch test reported failure status")
-                return retell_client.list_test_runs(batch_id)
-
-        logger.error(f"Batch test timed out after {timeout}s")
-        return []
+        assert self.provider is not None
+        run = await self.provider.wait_for_results(
+            suite, batch_id, poll_interval=self.poll_interval, timeout=timeout
+        )
+        if run.billed_minutes:
+            cost_meter.add_minutes(run.billed_minutes)
+        return run.conversations
 
     def _evaluate(
         self,
-        results: List[Dict[str, Any]],
+        results: List[Conversation],
         rules: CompiledRules,
     ) -> List[EvaluationResult]:
-        """Run deterministic + semantic evaluation on batch results."""
+        """Run deterministic + semantic evaluation on normalized conversations."""
         evaluations: List[EvaluationResult] = []
 
-        for res in results:
+        for conv in results:
             # Skip runs that haven't completed yet
-            run_status = res.get("status", "")
-            if run_status in ("in_progress", "pending", "running"):
-                logger.info(f"Skipping test run with status '{run_status}'")
+            if conv.status in ("in_progress", "pending", "running"):
+                logger.info(f"Skipping test run with status '{conv.status}'")
                 continue
 
-            scenario_id = (
-                res.get("test_case_id")
-                or res.get("test_case_definition_snapshot", {}).get("testCaseDefinitionId")
-                or "unknown"
-            )
-
-            ts_snapshot = res.get("transcript_snapshot", {})
-            transcript_list = ts_snapshot.get("transcript", [])
-            logger.info(f"DEBUG_HISTORY: Scenario {scenario_id} - Transcript items: {len(transcript_list)}")
-
-            transcript_str = ""
-            tool_calls = []
-
-            for msg in transcript_list:
-                role = str(msg.get("role", "")).lower()
-                content = msg.get("content", "")
-                m_type = msg.get("type", "")
-
-                if role in ("agent", "assistant", "user") and content:
-                    display_role = "Agent" if role in ("agent", "assistant") else "User"
-                    transcript_str += f"{display_role}: {content}\n"
-
-                if m_type in ("tool_call_invocation", "tool_call"):
-                    tool_name = msg.get("name") or msg.get("tool_name", "unknown")
-                    tool_calls.append({
-                        "name": tool_name,
-                        "arguments": msg.get("arguments") or msg.get("params") or msg.get("input", {}),
-                        "result": msg.get("result") or msg.get("output"),
-                    })
-
-            if not transcript_str:
-                transcript_str = res.get("transcript", "")
-
-            logger.info(f"DEBUG_HISTORY: Final transcript size: {len(transcript_str)}")
-
-            sim_result = SimulationResult(
-                scenario_id=scenario_id,
-                transcript=transcript_str.strip(),
-                tool_calls=tool_calls,
-                metadata=res,
-                status={"complete": "completed", "in_progress": "running"}.get(res.get("status", "completed"), res.get("status", "completed")),
-            )
+            sim_result: SimulationResult = conv.to_simulation_result()
+            logger.info(f"DEBUG_HISTORY: Final transcript size: {len(sim_result.transcript)}")
 
             det_result = deterministic_validator.validate(sim_result, rules)
             eval_result = score_engine.evaluate(
@@ -571,7 +506,7 @@ class QAEngine:
         can restore it if a subsequent iteration detects regression.
         """
         try:
-            current_prompt = retell_client.get_current_prompt(agent_id)
+            current_prompt = self.provider.get_prompt(agent_id)
         except Exception as e:
             logger.error(f"Failed to fetch current prompt: {e}")
             return None
@@ -593,11 +528,15 @@ class QAEngine:
             logger.error("Lint failed — optimization rejected")
             return None
 
+        if self.confirm_update is not None and not self.confirm_update(current_prompt, new_prompt):
+            logger.info("Prompt update rejected by reviewer")
+            return None
+
         # Save original prompt for rollback before deploying mutation
         self._pre_optimization_prompt = current_prompt
 
         try:
-            retell_client.update_prompt(agent_id, new_prompt)
+            self.provider.update_prompt(agent_id, new_prompt)
             logger.info(f"Prompt updated successfully (new length: {len(new_prompt)})")
         except Exception as e:
             logger.error(f"Failed to apply prompt update: {e}")
@@ -629,7 +568,7 @@ class QAEngine:
             return False
 
         try:
-            retell_client.update_prompt(agent_id, self._pre_optimization_prompt)
+            self.provider.update_prompt(agent_id, self._pre_optimization_prompt)
             logger.info("Rollback successful — restored pre-optimization prompt")
             self._pre_optimization_prompt = None
             return True

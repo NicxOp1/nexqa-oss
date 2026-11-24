@@ -45,6 +45,16 @@ class Config:
         os.getenv("CLAUDE_OUTPUT_PRICE_1M", str(_default_price[1]))
     )
     RETELL_PRICE_PER_MINUTE: float = float(os.getenv("RETELL_PRICE_PER_MINUTE", "0.12"))
+    # Price of one billed test-call minute on the platform under test. Defaults to
+    # the Retell price for backwards compatibility; set it for other platforms.
+    PLATFORM_PRICE_PER_MINUTE: float = float(
+        os.getenv("PLATFORM_PRICE_PER_MINUTE", str(RETELL_PRICE_PER_MINUTE))
+    )
+
+    # Simulated caller (platforms without a native test runner). One short
+    # turn per call, so a cheap model and low effort are enough.
+    SIMULATOR_MODEL: str = os.getenv("SIMULATOR_MODEL", CLAUDE_MODEL)
+    SIMULATOR_EFFORT: str = os.getenv("SIMULATOR_EFFORT", "low")
 
     # ─── Email / Alerts ────────────────────────────────────────────
 

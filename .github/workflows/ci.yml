@@ -29,8 +29,10 @@ jobs:
         run: python -m pip install -e ".[dev]"
       - name: Lint
         run: ruff check .
-      - name: Unit tests (offline, no API keys)
+      - name: Unit tests incl. every provider adapter (offline, mocked HTTP, no API keys)
         run: pytest
+      - name: Provider registry loads (offline)
+        run: nexqa providers
       - name: Build agent from spec (offline)
         run: python -m tests.test_dental_e2e --phase create
 

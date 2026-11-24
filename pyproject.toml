@@ -1,12 +1,12 @@
 [project]
 name = "nexqa"
-version = "0.2.0"
-description = "Automated QA and prompt evolution for Retell AI voice agents"
+version = "0.3.0"
+description = "Open-source QA and prompt evolution for voice AI agents (Retell, Vapi, ElevenLabs, Bland, Synthflow, Ultravox, LiveKit, Pipecat)"
 readme = "README.md"
 license = {text = "MIT"}
 authors = [{name = "Nick Lopez"}]
 requires-python = ">=3.11"
-keywords = ["voice-ai", "retell", "llm", "prompt-optimization", "qa", "claude"]
+keywords = ["voice-ai", "voice-agents", "qa", "testing", "prompt-optimization", "llm", "retell", "vapi", "elevenlabs", "bland", "synthflow", "ultravox", "livekit", "pipecat", "claude"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
@@ -38,7 +38,9 @@ api = ["motor>=3.3", "dnspython>=2.4"]
 dashboard = ["streamlit>=1.32", "plotly>=5.19", "pandas>=2.2"]
 # Tool-call webhook server (webhook_server/)
 webhook = ["pydantic-settings>=2.1", "aiohttp>=3.9", "tzdata"]
-all = ["nexqa[api,dashboard,webhook]"]
+# Ultravox text-only test calls (WebSocket client)
+ultravox = ["websockets>=13"]
+all = ["nexqa[api,dashboard,webhook,ultravox]"]
 dev = ["nexqa[all]", "pytest>=8", "ruff>=0.6"]
 
 [project.urls]

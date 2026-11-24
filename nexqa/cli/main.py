@@ -54,13 +54,86 @@ def build(
 
 
 @app.command()
+def providers():
+    """List supported voice platforms and how mature each adapter is."""
+    from rich.table import Table
+    from nexqa.providers import list_providers
+
+    table = Table(title="NEXQA providers")
+    for col in ("provider", "platform", "maturity", "how tests run", "API key"):
+        table.add_column(col)
+    for row in list_providers():
+        table.add_row(row["name"], row["display_name"], row["maturity"], row["test_mode"],
+                      row["api_key_env"] or "-")
+    console.print(table)
+    console.print("[dim]Set `provider:` in your spec, or pass --provider to `nexqa run`.[/dim]")
+
+
+def _run_with_engine(spec_path: Path, agent_id: str, provider_name: str, auto_apply: bool):
+    """QA loop for any provider, through the shared engine."""
+    import asyncio as _asyncio
+    from nexqa.core.engine import engine
+    from nexqa.providers import load_provider_settings, get_provider
+
+    spec_name, spec_config = load_provider_settings(spec_path)
+    provider = get_provider(provider_name, spec_config if provider_name == spec_name else {})
+    console.print(f"[green]Provider: {provider.display_name} ({provider.maturity})[/green]")
+    console.print(f"[dim]Tests: {provider.test_mode}[/dim]")
+
+    if not auto_apply:
+        def _confirm(old: str, new: str) -> bool:
+            diff_engine.show_diff(old, new)
+            return Confirm.ask(f"Apply this prompt update to the {provider.display_name} agent?")
+        engine.confirm_update = _confirm
+
+    result = _asyncio.run(engine.run_async(agent_id, spec_path, provider=provider))
+
+    for it in result.iterations:
+        console.print(f"Iteration {it.iteration}: score {it.avg_score:.2f}, "
+                      f"{it.error_count} critical, action={it.action}")
+        if it.evaluations:
+            report_path = html_reporter.generate(it.evaluations, f"v{it.iteration}")
+            console.print(f"  Report: [link={report_path}]{report_path}[/link]")
+    color = "green" if result.success else "yellow"
+    console.print(f"[bold {color}]Result: {result.action} (score {result.final_score:.2f})[/bold {color}]")
+    if result.error:
+        console.print(f"[red]{result.error}[/red]")
+    cost = result.cost_metrics.get("total_cost_usd")
+    if cost is not None:
+        console.print(f"[dim]Estimated cost: ${cost}[/dim]")
+
+
+@app.command()
 def run(
     spec_path: Path = typer.Option(..., help="Path to QA Specification file"),
-    agent_id: Optional[str] = typer.Option(None, help="Retell Agent ID to test")
+    agent_id: Optional[str] = typer.Option(None, help="ID of the agent to test on the platform"),
+    provider: Optional[str] = typer.Option(
+        None, help="Voice platform (retell, vapi, elevenlabs, ...). Default: the spec's "
+                   "`provider:` key, else retell. See `nexqa providers`."),
+    auto_apply: bool = typer.Option(
+        False, "--auto-apply", help="Deploy prompt rewrites without asking (non-Retell runs)"),
 ):
     """
-    Start the QA and Optimization Loop using Retell Batch Testing.
+    Start the QA and Optimization Loop against a voice agent.
+
+    Retell runs use Retell batch testing, exactly as before 0.3.0. Other
+    platforms run through the shared engine and their provider adapter.
     """
+    from nexqa.providers import load_provider_settings, normalize_name
+
+    try:
+        provider_name = normalize_name(provider) if provider else load_provider_settings(spec_path)[0]
+    except Exception as e:
+        console.print(f"[red]{e}[/red]")
+        raise typer.Exit(code=1)
+
+    if provider_name != "retell":
+        if not agent_id:
+            console.print("[red]--agent-id is required for this provider.[/red]")
+            raise typer.Exit(code=1)
+        _run_with_engine(spec_path, agent_id, provider_name, auto_apply)
+        return
+
     console.print("[bold blue]NEXQA v0.1 Starting...[/bold blue]")
 
     # 1. Select Agent
